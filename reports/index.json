@@ -1,0 +1,28 @@
+{
+ "reports": [
+  {
+   "id": "2026-10-19_2026-10-25",
+   "from": "2026-10-19",
+   "to": "2026-10-25",
+   "fileName": "institut-masovoyi-informaciyi_articles_2026-10-26_08-34-56.xlsx",
+   "fileHash": "016a3ef6ca12bd6dc43d6429af56a5c949de72e78bd4c094cc6f0fc3e407f227",
+   "savedAt": "2026-10-26T21:45:06.007Z",
+   "v": "2.0.0",
+   "materials": 227,
+   "viewsAll": 308043,
+   "viewsEditorial": 191141
+  },
+  {
+   "id": "2026-08-24_2026-08-30",
+   "from": "2026-08-24",
+   "to": "2026-08-30",
+   "fileName": "institut-masovoyi-informaciyi_articles_2026-08-31_07-56-52.xlsx",
+   "fileHash": "2232766241e8582e023dc6472d80480f158ccb5f57dd93f7ee2f28d33ad5d70e",
+   "savedAt": "2026-10-26T21:45:04.942Z",
+   "v": "2.0.0",
+   "materials": 217,
+   "viewsAll": 492086,
+   "viewsEditorial": 190047
+  }
+ ]
+}
