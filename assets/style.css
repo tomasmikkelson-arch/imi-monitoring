@@ -188,6 +188,47 @@ a:hover { text-decoration-thickness: 2px; }
 .tmap-note span { display: inline-flex; gap: 8px; align-items: center; }
 .tmap-note i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
 
+/* ───── огляд тем (сайт) ───── */
+.tov { margin: 6px 0 4px; }
+.tov button { font: inherit; text-align: left; cursor: pointer; border: 0; }
+.tov-lead { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 10px; }
+.tov-card { display: flex; flex-direction: column; gap: 12px; padding: 22px 22px 20px; border-radius: var(--r30); color: var(--ink); min-height: 200px; transition: filter .15s ease, transform .15s ease; }
+.tov-card:hover { filter: brightness(.96); }
+.tov-card:active { transform: scale(.99); }
+.tov-card.dark { color: #fff; }
+.tov-name { font: 500 18px/1.25 var(--display); letter-spacing: -0.01em; }
+.tov-card.first .tov-name { font-size: 21px; }
+.tov-num { margin-top: auto; }
+.tov-num b { display: block; font: 700 40px/1 var(--display); letter-spacing: -0.03em; }
+.tov-card.first .tov-num b { font-size: 54px; }
+.tov-num span { display: block; font-size: 14px; opacity: .85; margin-top: 6px; }
+.tov-bar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.35); overflow: hidden; }
+.tov-card:not(.dark) .tov-bar { background: rgba(34,34,34,.12); }
+.tov-bar i { display: block; height: 100%; border-radius: 6px; background: currentColor; }
+.tov-meta { font-size: 13.5px; opacity: .85; }
+.tov-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.tov-row { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 8px 14px; align-items: center; padding: 14px 18px 14px 14px; background: var(--paper); border-radius: var(--r15); color: var(--ink); transition: box-shadow .15s ease; }
+.tov-row:hover { box-shadow: inset 0 0 0 2px var(--blue-30); }
+.tov-sw { grid-row: 1 / span 2; align-self: stretch; width: 6px; border-radius: 6px; }
+.tov-rn { font: 500 15.5px/1.3 var(--display); min-width: 0; }
+.tov-rn small { display: block; font: 400 13px/1.35 var(--text); color: var(--muted); margin-top: 3px; }
+.tov-rv { text-align: right; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.tov-rv b { display: block; font: 700 19px/1.1 var(--display); color: var(--ink); }
+.tov-rbar { grid-column: 2 / -1; height: 5px; border-radius: 5px; background: var(--card); overflow: hidden; }
+.tov-rbar i { display: block; height: 100%; border-radius: 5px; }
+@media (max-width: 960px) {
+  .tov-lead { grid-template-columns: 1fr 1fr; }
+  .tov-card.first { grid-column: 1 / -1; min-height: 0; }
+  .tov-rest { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .tov-lead { grid-template-columns: 1fr; }
+  .tov-card { min-height: 0; padding: 18px; }
+  .tov-num b { font-size: 34px; }
+  .tov-card.first .tov-num b { font-size: 42px; }
+  .tov-row { padding: 12px 14px 12px 12px; }
+}
+
 /* ───── теми: розгортання ───── */
 .themes { margin-top: 22px; display: grid; gap: 10px; }
 .theme { border-radius: var(--r30); background: var(--paper); }

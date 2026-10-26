@@ -691,7 +691,34 @@
     }
     return out;
   }
+  /* Огляд тем на сайті: три теми-лідери великими картками, решта — списком.
+     Усі назви й цифри видно повністю на будь-якій ширині екрана. */
+  function themeOverview(A) {
+    const shown = A.themes.filter(t => t.views > 0 || t.count > 0);
+    const lead = shown.filter(t => !EDIT_SKIP.includes(t.key) && t.views > 0).slice(0, 3);
+    const rest = shown.filter(t => !lead.includes(t));
+    const max = Math.max.apply(null, shown.map(t => t.views).concat([1]));
+    const meta = t => nw(t.count, WD.mat) + ", " + nw(t.srcCount, WD.src);
+    const card = (t, i) => {
+      const c = themeColor(t, pctN(t.views, A.total));
+      return '<button type="button" class="tov-card' + (i === 0 ? " first" : "") + (c.dark ? " dark" : "") + '" data-theme="' + esc(t.key) + '" style="background:' + c.bg + '">' +
+        '<span class="tov-name">' + esc(t.name) + "</span>" +
+        '<span class="tov-num"><b>' + fmt(t.views) + "</b><span>" + pct(t.views, A.total) + " охоплення</span></span>" +
+        '<span class="tov-bar"><i style="width:' + Math.max(2, pctN(t.views, max)).toFixed(1) + '%"></i></span>' +
+        '<span class="tov-meta">' + meta(t) + "</span></button>";
+    };
+    const row = t => {
+      const c = themeColor(t, pctN(t.views, A.total));
+      return '<button type="button" class="tov-row" data-theme="' + esc(t.key) + '"><span class="tov-sw" style="background:' + c.bg + '"></span>' +
+        '<span class="tov-rn">' + esc(t.name) + "<small>" + meta(t) + "</small></span>" +
+        '<span class="tov-rv"><b>' + fmt(t.views) + "</b>" + pct(t.views, A.total) + "</span>" +
+        '<span class="tov-rbar"><i style="width:' + Math.max(1, pctN(t.views, max)).toFixed(1) + "%;background:" + (t.key === "donor" ? "var(--dust)" : "var(--blue)") + '"></i></span></button>';
+    };
+    return '<div class="tov no-print">' + (lead.length ? '<div class="tov-lead">' + lead.map(card).join("") + "</div>" : "") +
+      (rest.length ? '<div class="tov-rest">' + rest.map(row).join("") + "</div>" : "") + "</div>";
+  }
   function drawTreemap(A) {
+    if (!$("tmap")) return;
     const box = $("tmap");
     if (!box) return;
     const W = box.clientWidth, H = box.clientHeight;
@@ -795,10 +822,9 @@
       "</div></details>");
 
     // теми
-    h.push('<section class="block" id="themesBlock"><h2>Теми й тексти ІМІ</h2><p class="lead">Матеріали згруповано за тим, на який текст чи напрям ІМІ вони посилаються: усі згадки моніторингу стандартів разом, усі згадки Барометра разом тощо. <span class="screen-only">Площа плитки — частка підтвердженого охоплення. Проєктні плашки (' + fmt(C.viewsDonor) + ", " + pct(C.viewsDonor, C.viewsAll) + ') на мапі не показано, вони окремою темою в списку. Натисніть на плитку, щоб побачити матеріали.</span></p>' +
-      '<div class="tmap" id="tmap" role="img" aria-label="Мапа тем за охопленням"></div>' +
+    h.push('<section class="block" id="themesBlock"><h2>Теми й тексти ІМІ</h2><p class="lead">Матеріали згруповано за тим, на який текст чи напрям ІМІ вони посилаються: усі згадки моніторингу стандартів разом, усі згадки Барометра разом тощо. <span class="screen-only">Цифра — підтверджені перегляди теми і її частка в усьому охопленні. Натисніть на тему, щоб побачити матеріали.</span></p>' +
+      themeOverview(A) +
       '<div class="tlist-print">' + A.themes.filter(t => t.views > 0).map(t => '<div class="tlp"><span class="tlp-n">' + esc(t.name) + "<small>" + nw(t.count, WD.mat) + ", " + nw(t.srcCount, WD.src) + '</small></span><span class="tlp-bar"><i style="width:' + Math.max(1, pctN(t.views, A.themes.reduce((mx, x) => Math.max(mx, x.views), 1))).toFixed(1) + "%;background:" + themeColor(t, pctN(t.views, A.total)).bg + '"></i></span><span class="tlp-v"><b>' + fmt(t.views) + "</b>" + pct(t.views, A.total) + "</span></div>").join("") + "</div>" +
-      '<div class="tmap-note"><span><i style="background:var(--blue)"></i>20% охоплення й більше</span><span><i style="background:var(--blue-70)"></i>5–20%</span><span><i style="background:var(--blue-50)"></i>2–5%</span><span><i style="background:var(--blue-30)"></i>менше 2%</span><span><i style="background:var(--green-soft)"></i>власні публікації</span><span><i style="background:var(--gray-tile)"></i>інші згадки</span></div>' +
       '<div class="themes">' + A.themes.map(t => themeBlock(t, A, A.themes.filter(x => x.key !== "donor").slice(0, 2).includes(t))).join("") + "</div></section>");
 
     // типи + тональність
@@ -970,7 +996,7 @@
     });
     ["q", "fTheme", "fKind", "fStat"].forEach(id => on(id, id === "q" ? "input" : "change", drawRegistry));
     $("reportRoot").addEventListener("click", (e) => {
-      const tile = e.target.closest(".tile");
+      const tile = e.target.closest(".tile, .tov-card, .tov-row");
       if (tile) {
         const d = $("t-" + tile.getAttribute("data-theme"));
         if (d) { d.open = true; d.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); }
