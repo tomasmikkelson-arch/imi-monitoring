@@ -786,7 +786,6 @@
     // hero
     const share = (v) => Math.max(0, pctN(v, C.viewsAll));
     h.push('<section class="reach" aria-label="Охоплення"><div><div class="lbl">Підтверджене охоплення, переглядів</div><div class="big num">' + fmt(C.viewsAll) + "</div>" +
-      '<div class="sub">Лише перегляди конкретних матеріалів після очищення. Аудиторію ресурсів, AVE й перегляди з дублями не враховано.</div>' +
       '<div class="mixbar" role="img" aria-label="Склад охоплення">' +
       '<i style="width:' + share(C.viewsEditorial) + '%;background:#fff" data-tip="Редакційні згадки: ' + fmt(C.viewsEditorial) + '"></i>' +
       '<i style="width:' + share(C.viewsDonor) + '%;background:var(--dust)" data-tip="Проєктні плашки: ' + fmt(C.viewsDonor) + '"></i>' +
@@ -799,7 +798,6 @@
       '<div class="rstat"><b class="num">' + fmt(A.media.length) + "</b><span>медіа й каналів</span></div>" +
       '<div class="rstat"><b class="num">' + fmt(C.editorial) + "</b><span>редакційних згадок</span></div>" +
       '<div class="rstat"><b class="num">' + fmt(C.donor) + "</b><span>проєктних плашок</span></div>" +
-      '<div class="rstat wide"><b class="num">' + fmt(C.rows) + " → " + fmt(C.materials) + "</b><span>рядків у файлі → матеріалів: шум " + C.noiseRows + ", згорнуто дублів " + C.folded + "</span></div>" +
       "</div></section>");
 
     // головне
