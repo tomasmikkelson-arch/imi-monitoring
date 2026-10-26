@@ -332,6 +332,7 @@
     STATE = { report: rep, saved: true };
     openReport();
     await idxP;
+    loadPrev();
   }
   window.addEventListener("popstate", () => { STATE = STATE && new URLSearchParams(location.search).get("r") === STATE.report.id ? STATE : null; route(); });
 
@@ -448,46 +449,187 @@
     if (z) s += "Без підтверджених переглядів у файлі: " + z + ".";
     return s.trim();
   }
-  function conclusions(A) {
-    const C = A.C, out = [];
-    const nonOwn = A.kinds.filter(k => !["owned", "donor"].includes(k.key));
-    if (nonOwn[0]) {
-      const k = nonOwn[0];
-      out.push("Найчастіша роль ІМІ в медіа — " + KIND_SHORT[k.key] + ": " + nw(k.count, WD.mat) + ", " + fmt(k.views) + " переглядів (" + pct(k.views, C.viewsAll) + "). " +
-        (nonOwn.length > 1 ? "Далі: " + nonOwn.slice(1, 4).map(x => KIND_SHORT[x.key] + " — " + x.count).join("; ") + "." : ""));
-    }
-    const ed = A.themes.filter(t => !["donor", "owned", "other"].includes(t.key) && t.views > 0);
-    if (ed[0]) out.push("Найбільшу видимість дає тема «" + ed[0].name + "»: " + pct(ed[0].views, C.viewsAll) + " усього охоплення і " + pct(ed[0].views, C.viewsEditorial) + " редакційного." + (ed[1] ? " Друга — «" + ed[1].name + "» (" + pct(ed[1].views, C.viewsAll) + ")." : ""));
-    const strong = A.editorial.filter(m => /ТОП-100|Національн/i.test(m.level) && ["data", "expert", "primary"].includes(m.kind));
-    if (strong.length) {
-      const names = Array.from(new Set(strong.sort((a, b) => b.views - a.views).map(srcLabel))).slice(0, 6);
-      out.push("Репутаційний капітал — " + nw(strong.length, WD.mat) + " у національних і ТОП-100 медіа, де ІМІ є джерелом даних, новини чи експертом: " + names.join(", ") + ".");
-    }
-    const neg = A.M.filter(m => m.tone === "Негатив");
-    const conflict = A.M.filter(m => m.kind === "conflict");
-    if (neg.length || conflict.length) out.push("Репутаційні ризики: " + nw(conflict.length, WD.mat) + " з критикою чи конфліктом навколо ІМІ (" + fmt(conflict.reduce((s, m) => s + m.views, 0)) + " переглядів), із них з негативною подачею — " + neg.length + ".");
-    else out.push("Репутаційних ризиків у масиві не видно: критики чи конфліктної подачі ІМІ немає.");
-    out.push("Структура згадок: редакційні — " + C.editorial + " (" + pct(C.viewsEditorial, C.viewsAll) + " охоплення), проєктні плашки — " + C.donor + " (" + pct(C.viewsDonor, C.viewsAll) + "), власні публікації — " + C.owned + ". Плашки не змішуємо з редакційною видимістю.");
-    if (A.toneChanges.length) out.push("Мітки Looqme виправлено в " + nw(A.toneChanges.length, WD.mat) + ": негативна тема (атака, загибель, фейк) не означає негативної подачі ІМІ.");
-    if (A.experts.length) out.push("Експертний голос ІМІ: " + A.experts.map(e => e.key).slice(0, 5).join(", ") + " — " + nw(A.experts.reduce((s, e) => s + e.count, 0), WD.mat) + " з прямим коментарем.");
-    else out.push("Прямих коментарів названих представників ІМІ у масиві не знайдено — ІМІ присутній переважно через дані й повідомлення.");
-    return out.slice(0, 8);
+  /* ═════════════ ВИСНОВКИ Й РЕКОМЕНДАЦІЇ ═════════════
+     Кожне твердження народжується з конкретної ознаки цього файлу і має «вагу» —
+     у звіт ідуть найвагоміші. Тому різні тижні дають різні висновки, а той самий файл — ті самі. */
+  const EDIT_SKIP = ["donor", "owned", "other"];
+  function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function pick(seed, variants) { return variants[hashStr(seed) % variants.length]; }
+  const TR = { a: "а", b: "б", v: "в", g: "г", h: "г", d: "д", e: "е", z: "з", i: "і", y: "и", k: "к", l: "л", m: "м", n: "н", o: "о", p: "п", r: "р", s: "с", t: "т", u: "у", f: "ф", c: "к", x: "кс", w: "в", j: "й" };
+  function loose(s) { return String(s || "").toLowerCase().replace(/[ьʼ’'`]/g, "").replace(/[іиїy]/g, "і").replace(/[её]/g, "е"); }
+  function outletStems(m) {
+    const out = [];
+    const place = (m.place || "").split(/[|│\-–—:(]/)[0];
+    place.split(/\s+/).forEach(w => { w = w.replace(/[^A-Za-zА-Яа-яІіЇїЄєҐґ.]/g, "").replace(/\.(tv|ua|ру|ua)$/i, ""); if (w.length >= 4 && !/^(новини|новости|канал|медіа|news|online|україни|україна)$/i.test(w)) out.push(w); });
+    const dom = String(m.src || "").toLowerCase().replace(/^www\./, "").split(".")[0];
+    if (dom.length >= 4 && !/^(telegram|instagram|twitter|youtube|tiktok|threads|facebook)$/.test(dom)) {
+      out.push(dom);
+      out.push(dom.replace(/[a-z]/g, c => TR[c] || c));
+    } else if (!/\./.test(m.src || "") && (m.src || "").length >= 4) out.push(m.src);
+    return out.map(loose);
   }
-  function recommendations(A) {
-    const C = A.C, out = [];
-    const dataThemes = A.themes.filter(t => !["donor", "owned", "other"].includes(t.key) && t.items.some(m => m.kind === "data"));
-    if (dataThemes[0]) out.push("Посилювати теми, де ІМІ вже дає цифру чи перелік, — насамперед «" + dataThemes[0].name + "». Формат «за даними ІМІ» дає найбільше органічних передруків: ключовий висновок тримати одним реченням, яке медіа можуть процитувати.");
-    const exp = A.experts.reduce((s, e) => s + e.count, 0);
-    if (exp < 8) out.push("Експертних коментарів мало (" + exp + "). Пропонувати спікерів ІМІ й Медіабаз профільним журналістам проактивно, з готовою тезою до інфоприводу тижня.");
-    else out.push("Експертний формат працює (" + exp + " матеріалів із прямою мовою). Закріпити за кожним спікером 2–3 теми, щоб журналісти знали, кого питати.");
-    const bg = A.kinds.find(k => k.key === "background"), pos = A.kinds.find(k => k.key === "position");
-    if ((bg && bg.count) || (pos && pos.count)) out.push("Де ІМІ згадано побіжно чи серед підписантів (" + ((bg ? bg.count : 0) + (pos ? pos.count : 0)) + " матеріалів), робити окремий привід саме про внесок ІМІ, щоб організація не губилася в переліку.");
-    out.push("Проєктні плашки тримати окремим рядком у звітності: цього разу це " + pct(C.viewsDonor, C.viewsAll) + " охоплення, і змішування з редакційними згадками завищило б видимість.");
-    const conflict = A.M.filter(m => m.kind === "conflict");
-    if (conflict.length) out.push("На критику (" + conflict.length + " " + plural(conflict.length, WD.mat) + ") мати коротку відповідь про методологію й джерела фінансування ІМІ, готову до нової хвилі в Telegram і YouTube.");
-    else out.push("Негативу немає — тримати напоготові коротке пояснення методології моніторингів, бо рейтинги й переліки ІМІ найчастіше стають приводом для суперечок.");
-    if (A.inflation.length) out.push("У рейтингу медіа позначати однакові перегляди як модельовану оцінку Looqme (" + A.inflation.slice(0, 3).map(g => g.key).join(", ") + "), а не виміряне охоплення.");
-    return out.slice(0, 7);
+  function isSelfPromo(m) {
+    if (m.owned || m.donor || m.transcript || !["standards", "map", "transparency"].includes(m.theme)) return false;
+    const t = loose(m.title);
+    return outletStems(m).some(s => s.length >= 4 && t.includes(s));
+  }
+  function periodDays(R) { const a = Date.parse(R.period.from), b = Date.parse(R.period.to); return isNaN(a) || isNaN(b) ? 7 : Math.round((b - a) / 86400000) + 1; }
+  function chg(now, before) { if (!before) return ""; const d = (100 * (now - before)) / before; return (d >= 0 ? "+" : "−") + Math.abs(d).toFixed(0) + "%"; }
+  function li(lead, text) { return { lead, text }; }
+
+  function findings(A, P) {
+    const C = A.C, R = A.R, seed = R.id;
+    const edV = C.viewsEditorial || 0;
+    const per = periodDays(R) <= 8 ? "Тиждень" : "Період";
+    const perL = per.toLowerCase();
+    const ed = A.editorial;
+    const edThemes = A.themes.filter(t => !EDIT_SKIP.includes(t.key) && t.views > 0);
+    const C_ = [], R_ = [];
+    const add = (arr, score, lead, text) => arr.push({ score, lead, text });
+
+    /* — на чому тримався період — */
+    const t0 = edThemes[0], t1 = edThemes[1], t2 = edThemes[2];
+    if (t0 && edV) {
+      const share = t0.views / edV;
+      const st = t0.stories[0];
+      if (share >= 0.4) add(C_, 90 + share * 10, per + " тримався на одній темі.", "«" + t0.name + "» — " + pct(t0.views, edV) + " редакційного охоплення" + (st && st.items.length >= 3 ? ", і в основі — один текст ІМІ, який " + st.items.length + " " + plural(st.items.length, ["раз", "рази", "разів"]) + " переказали медіа й канали (" + nw(st.views, WD.view) + ")" : "") + ". Усі інші теми разом — " + pct(edV - t0.views, edV) + ". Наступний " + perL + " без такого приводу дасть помітно меншу цифру — це не спад, а відсутність хвилі.");
+      else add(C_, 55, "Охоплення розпорошене між темами.", "Лідер — «" + t0.name + "» з " + pct(t0.views, edV) + " редакційного охоплення" + (t1 ? ", далі «" + t1.name + "» (" + pct(t1.views, edV) + ")" : "") + (t2 ? " і «" + t2.name + "» (" + pct(t2.views, edV) + ")" : "") + ". Жоден напрям ІМІ не став головним приводом " + (per === "Тиждень" ? "тижня" : "періоду") + ".");
+    }
+    /* — один матеріал — */
+    const topEd = topOf(ed);
+    if (topEd && edV && topEd.views / edV >= 0.12) {
+      const sh = topEd.views / edV;
+      const weak = ["background", "position"].includes(topEd.kind);
+      add(C_, 60 + sh * 60 + (weak ? 15 : 0), weak ? "Найбільша цифра — із побіжної згадки." : "Один матеріал важить непропорційно багато.", "«" + clip(topEd.displayTitle, 90) + "» (" + srcLabel(topEd) + ") дав " + pct(topEd.views, edV) + " редакційного охоплення; без нього редакційні перегляди були б " + fmt(edV - topEd.views) + "." + (weak ? " ІМІ там лише згаданий мимохідь, тож реальна видимість організації нижча, ніж показує сума." : ""));
+    }
+    /* — медіа піарять себе оцінкою ІМІ — */
+    const self = ed.filter(isSelfPromo);
+    const selfV = self.reduce((s, m) => s + m.views, 0);
+    if (self.length >= 3) {
+      const names = Array.from(new Set(self.sort((a, b) => b.views - a.views).map(m => (m.place || m.src).split(/[|│]/)[0].trim()))).slice(0, 5);
+      add(C_, 70 + Math.min(20, self.length), "ІМІ працює як знак якості, яким медіа хваляться.", nw(self.length, WD.mat) + " (" + nw(selfV, WD.view) + ", " + pct(selfV, edV) + " редакційного) — це редакції, що пишуть про себе в оцінці ІМІ: " + names.join(", ") + ". Ці перегляди дає їхня власна аудиторія, а не інтерес до ІМІ, — але саме так бренд ІМІ доходить до читачів, які про нього не чули.");
+      add(R_, 85, "Перетворити чужий самопіар на трафік для ІМІ.", "Наступного разу, коли виходитиме перелік чи рейтинг, надіслати медіа зі списку готовий банер і два речення з посиланням на методологію на imi.org.ua. Зараз " + nw(self.length, ["публікація", "публікації", "публікацій"]) + " (" + nw(selfV, WD.view) + ") майже не ведуть читача до ІМІ.");
+    }
+    /* — голос чи цифри — */
+    const expM = A.M.filter(m => m.kind === "expert" || (m.expert && !m.owned && !m.donor));
+    const dataN = A.M.filter(m => m.kind === "data").length;
+    if (A.experts.length && expM.length) {
+      const e0 = A.experts[0];
+      if (e0.count / expM.length >= 0.5 && expM.length >= 4) {
+        add(C_, 62, "Експертний голос ІМІ тримається на одній людині.", e0.key + " — " + e0.count + " з " + expM.length + " матеріалів із прямою мовою представника ІМІ, переважно на тему «" + (A.themeName[groupBy(e0.items, m => m.theme)[0].key] || "") + "».");
+        add(R_, 60, "Розширити коло спікерів.", "Зараз експертна видимість залежить від " + e0.key + ". Варто закріпити ще одного-двох людей за темами «" + edThemes.filter(t => !e0.items.some(m => m.theme === t.key)).slice(0, 2).map(t => t.name).join("» і «") + "», де ІМІ згадують, але без живого коментаря.");
+      } else if (dataN / Math.max(1, expM.length) >= 4) add(C_, 48, "ІМІ частіше цитують як цифру, ніж як людину.", "На одну пряму цитату представника ІМІ припадає " + Math.round(dataN / expM.length) + " згадок «за даними ІМІ» (" + dataN + " проти " + expM.length + ").");
+      else add(C_, 40, "Експертний формат працює.", nw(expM.length, WD.mat) + " із прямою мовою: " + A.experts.slice().sort((a, b) => b.count - a.count || b.views - a.views).slice(0, 4).map(e => e.key + " (" + e.count + ")").join(", ") + ".");
+    } else if (dataN >= 5) {
+      add(C_, 58, "ІМІ цитують як джерело цифр, але не як голос.", dataN + " матеріалів посилаються на дані ІМІ, і жодного — з прямим коментарем названого представника.");
+      if (t0) add(R_, 66, "Додати людину до цифри.", "Тема «" + t0.name + "» дала " + nw(t0.views, WD.view) + " без жодного коментаря представника ІМІ. Разом із наступним релізом пропонувати спікера на 10 хвилин — медіа охочіше беруть цитату, ніж таблицю.");
+    }
+    /* — де живе охоплення — */
+    const plat = groupBy(ed, m => m.social ? platform(m.src) : "Сайти медіа");
+    const socV = ed.filter(m => m.social).reduce((s, m) => s + m.views, 0);
+    if (edV && plat[0]) {
+      const sh = socV / edV;
+      if (sh >= 0.55) {
+        const p0 = plat.find(p => p.key !== "Сайти медіа");
+        add(C_, 45 + sh * 20, "Редакційне охоплення живе в соцмережах.", pct(socV, edV) + " дали дописи медіа й каналів у соцмережах" + (p0 ? ", найбільше " + p0.key + " (" + fmt(p0.views) + ")" : "") + "; сайти медіа — " + pct(edV - socV, edV) + ".");
+        if (p0) add(R_, 50, "Писати під " + p0.key + ".", "Релізи ІМІ варто доповнювати версією на 3–4 речення з однією цифрою в першому рядку — саме такі тексти адміністратори " + p0.key + "-каналів забирають без змін. " + p0.key + " дав " + pct(p0.views, edV) + " редакційного охоплення.");
+      } else if (sh <= 0.25) add(C_, 35, "Охоплення дають сайти, а не соцмережі.", pct(edV - socV, edV) + " редакційного охоплення — публікації на сайтах медіа, соцмережі — лише " + pct(socV, edV) + ".");
+    }
+    /* — географія — */
+    const nat = ed.filter(m => /ТОП-100|Національн/i.test(m.level)), reg = ed.filter(m => /Регіональн|Маловідом/i.test(m.level));
+    if (nat.length + reg.length >= 6) {
+      const natV = nat.reduce((s, m) => s + m.views, 0), regV = reg.reduce((s, m) => s + m.views, 0);
+      add(C_, 30 + (reg.length > nat.length ? 10 : 0), reg.length > nat.length ? "Більшість згадок — у регіонах, а охоплення — у столиці." : "Головний майданчик ІМІ — національні медіа.", "Національні й ТОП-100: " + nw(nat.length, WD.mat) + " і " + nw(natV, WD.view) + "; регіональні й маловідомі: " + reg.length + " і " + nw(regV, WD.view) + ".");
+      const regT = A.themes.filter(t => ["regional", "mediabaza"].includes(t.key));
+      const regTN = regT.reduce((s, t) => s + t.count, 0), regTV = regT.reduce((s, t) => s + t.views, 0);
+      if (regTN >= 4 && edV && regTV / edV < 0.05) add(R_, 42, "Збирати регіональне в національний привід.", "Регіональні моніторинги й Медіабаза — " + regTN + " матеріалів, але лише " + pct(regTV, edV) + " охоплення. Щомісячний зведений текст «що змінилося в регіональних медіа» з 2–3 цифрами з різних областей має шанс потрапити в національні медіа, куди окремі регіональні звіти не доходять.");
+    }
+    /* — плашки — */
+    if (C.viewsDonor) {
+      const dItems = A.M.filter(m => m.donor), d0 = topOf(dItems);
+      if (C.viewsDonor > C.viewsEditorial) {
+        add(C_, 72, "Більшу частину цифри дали плашки, а не згадки.", "Партнерські матеріали з формулою «створено в межах проєкту ІМІ» — " + pct(C.viewsDonor, C.viewsAll) + " охоплення" + (d0 && d0.views / C.viewsDonor > 0.4 ? ", з них " + pct(d0.views, C.viewsDonor) + " — одне «" + clip(d0.displayTitle, 70) + "» (" + srcLabel(d0) + ")" : "") + ". Редакційна видимість ІМІ — " + fmt(C.viewsEditorial) + ".");
+        add(R_, 64, "Не називати загальну цифру видимістю ІМІ.", "У звітах донорам і партнерам показувати окремо: редакційні згадки — " + fmt(C.viewsEditorial) + ", партнерські матеріали — " + fmt(C.viewsDonor) + ". Сума " + fmt(C.viewsAll) + " виглядає краще, але перша ж перевірка покаже, що більшість — це плашки.");
+      } else if (d0 && d0.views / C.viewsDonor > 0.5) add(C_, 38, "Донорське охоплення — це один матеріал.", "«" + clip(d0.displayTitle, 80) + "» (" + srcLabel(d0) + ") — " + pct(d0.views, C.viewsDonor) + " усіх переглядів партнерських матеріалів.");
+    }
+    /* — конфлікт — */
+    const conf = A.M.filter(m => m.kind === "conflict");
+    if (conf.length) {
+      const cV = conf.reduce((s, m) => s + m.views, 0), neg = conf.filter(m => m.tone === "Негатив").length, c0 = topOf(conf);
+      add(C_, 66 + Math.min(15, conf.length * 2), "Конфлікт навколо ІМІ — помітна частина " + (per === "Тиждень" ? "тижня" : "періоду") + ".", nw(conf.length, WD.mat) + " про претензії до ІМІ (" + nw(cV, WD.view) + "), найпомітніший — «" + clip(c0.displayTitle, 80) + "» (" + srcLabel(c0) + "). " + (neg ? "З негативною подачею — " + neg + ", решта переказує суперечку нейтрально." : "Подача нейтральна: медіа переказують суперечку, а не стають на чийсь бік."));
+      add(R_, 74, "Відповідати методологією, а не емоцією.", "Не вступати в полеміку в тоні опонента і не відповідати в коментарях. Одна спокійна публікація: критерії, як відбираються медіа, що можна оскаржити і як. Медіа, які зараз переказують суперечку нейтрально, охоче процитують і пояснення.");
+    }
+    /* — власні канали — */
+    const own = A.M.filter(m => m.owned), ownZ = own.filter(m => m.viewsMissing).length;
+    if (own.length && C.viewsAll && C.viewsOwned / C.viewsAll < 0.03) {
+      add(C_, 28, "Власні канали ІМІ майже не видно в цифрах.", own.length + " публікацій ІМІ дали " + pct(C.viewsOwned, C.viewsAll) + " охоплення" + (ownZ ? ", причому " + ownZ + " з них Looqme показує без переглядів" : "") + ".");
+      if (ownZ >= 3) add(R_, 36, "Дорахувати власні канали вручну.", "Looqme не бачить переглядів " + ownZ + " власних публікацій ІМІ (насамперед Instagram). Без цифр з Insights власні канали у звіті завжди будуть близькі до нуля, і це спотворює порівняння owned та earned.");
+    }
+    /* — інфопривід ІМІ без власного першоджерела — */
+    const bigStory = Object.values(A.stories).filter(s => s.items.length >= 4 && !EDIT_SKIP.includes(s.theme)).sort((a, b) => b.views - a.views)[0];
+    if (bigStory) {
+      let ownIn = bigStory.items.filter(m => m.owned);
+      const inStory = ownIn.length > 0;
+      if (!inStory) ownIn = A.M.filter(m => m.owned && m.theme === bigStory.theme);
+      const ownV = ownIn.reduce((s, m) => s + m.views, 0), own0 = topOf(ownIn);
+      const retold = bigStory.views - (inStory ? ownV : 0);
+      if (!ownIn.length) add(R_, 46, "Бути першим у власному інфоприводі.", "Текст «" + clip(bigStory.title, 80) + "» розійшовся: " + nw(bigStory.items.length, ["публікація", "публікації", "публікацій"]) + ", " + nw(bigStory.views, WD.view) + ", але власної публікації ІМІ на цю тему у вигрузці немає. Якщо її не було в соцмережах ІМІ, цей привід поширили інші без посилання на першоджерело.");
+      else if (ownV * 10 < retold) add(R_, 44, "Зробити першоджерело зручним для цитування.", (ownIn.length > 1 ? "Власні публікації ІМІ на цю тему (найбільша — «" + clip(own0.displayTitle, 60) + "») зібрали " : "Власна публікація ІМІ «" + clip(own0.displayTitle, 70) + "» зібрала ") + nw(ownV, WD.view) + (inStory ? ", а її переказ у медіа — " : ", а переказ тексту «" + clip(bigStory.title, 60) + "» у медіа — ") + nw(retold, WD.view) + ". Цифра в заголовку, коротка цитата й пряме посилання на дані допомагають медіа посилатися саме на ІМІ.");
+    }
+    /* — модельовані цифри — */
+    if (A.inflation.length) {
+      const g = A.inflation.slice().sort((a, b) => b.views - a.views)[0];
+      add(R_, 26 + Math.min(10, A.inflation.length), "Не будувати рейтинг медіа на модельованих цифрах.", g.key + ": " + nw(g.count, WD.mat) + " з однаковою цифрою " + fmt(g.items[0].views) + " — це оцінка Looqme, а не вимір. Таких джерел у файлі " + A.inflation.length + "; у презентаціях їхнє місце в рейтингу варто позначати.");
+    }
+    /* — пік — */
+    const pk = A.days.slice().sort((a, b) => b.views - a.views)[0];
+    if (pk && pk.views && C.viewsAll && pk.views / C.viewsAll > 0.25) {
+      const m = topOf(A.M.filter(x => x.date === pk.date));
+      add(C_, 22 + (pk.views / C.viewsAll) * 20, "Пік — " + pk.wd + ", " + dateShort(pk.date) + ".", nw(pk.views, WD.view) + " (" + pct(pk.views, C.viewsAll) + " " + (per === "Тиждень" ? "тижня" : "періоду") + ")" + (m ? ", передусім завдяки «" + clip(m.displayTitle, 70) + "» (" + srcLabel(m) + ")" : "") + ".");
+    }
+    /* — порівняння з попереднім звітом — */
+    if (P) {
+      const same = Math.abs(periodDays(P.R) - periodDays(R)) <= 1;
+      const k = same ? 1 : periodDays(R) / periodDays(P.R);
+      const pAll = P.C.viewsAll * k, pEd = P.C.viewsEditorial * k;
+      const pThemes = {}; P.themes.forEach(t => { pThemes[t.key] = t; });
+      const nowKeys = new Set(edThemes.map(t => t.key));
+      const fresh = edThemes.filter(t => !pThemes[t.key] && t.views / (edV || 1) > 0.05).map(t => "«" + t.name + "»");
+      const gone = P.themes.filter(t => !EDIT_SKIP.includes(t.key) && t.views / (P.C.viewsEditorial || 1) > 0.1 && !nowKeys.has(t.key)).map(t => "«" + t.name + "»");
+      add(C_, 95, "Порівняно з попереднім звітом в архіві (" + periodLabel(P.R.period.from, P.R.period.to) + (same ? "" : ", з поправкою на тривалість") + ").", "Підтверджене охоплення " + chg(C.viewsAll, pAll) + ", редакційне " + chg(edV, pEd) + " (" + fmt(pEd) + " → " + fmt(edV) + ")." + (fresh.length ? " Нові помітні теми: " + fresh.join(", ") + "." : "") + (gone.length ? " Зникли: " + gone.join(", ") + "." : ""));
+      const pTop = P.themes.filter(t => !EDIT_SKIP.includes(t.key))[0];
+      if (pTop && !nowKeys.has(pTop.key)) add(R_, 34, "Не губити минулий привід.", "Минулого разу головною була тема «" + pTop.name + "» (" + nw(pTop.views, WD.view) + "), цього разу її немає. Якщо в ІМІ є продовження — оновлені цифри чи реакція — зараз зручний момент нагадати про неї.");
+    }
+    /* — нульові перегляди — */
+    if (A.zero.length / (A.M.length || 1) > 0.2) add(C_, 20, "Цифри занижують реальну присутність.", A.zero.length + " з " + A.M.length + " матеріалів у файлі без переглядів: їх враховано як нуль, бо Looqme не дає цифри.");
+
+    const top = (arr, n) => arr.sort((a, b) => b.score - a.score).slice(0, n);
+    let conc = top(C_, 7), recs = top(R_, 6);
+    if (recs.length < 3) recs = recs.concat([
+      { lead: "Тримати плашки окремо.", text: "Партнерські матеріали з плашкою ІМІ показувати окремим рядком, щоб не змішувати їх із редакційною видимістю (" + pct(C.viewsDonor, C.viewsAll) + " цього разу)." },
+      { lead: "Пакувати дані для передруку.", text: "Ключовий висновок кожного моніторингу — одне речення з цифрою, яке медіа можуть процитувати без переписування." }
+    ]).slice(0, 3);
+    return { conc, recs, lead: pick(seed, ["Що показує цей файл", "Головні висновки", "Що варто знати про цей період"]) };
+  }
+
+  function findingsHtml(A) {
+    const F = findings(A, STATE.prev && STATE.prev.R.id !== A.R.id ? STATE.prev : null);
+    const item = x => "<li><b>" + esc(x.lead) + "</b> " + esc(x.text) + "</li>";
+    return '<div class="findings" id="findings"><section class="block"><h2>Висновки</h2><ol class="flist">' + F.conc.map(item).join("") + "</ol></section>" +
+      '<section class="block recs"><h2>Рекомендації для комунікацій</h2><ol class="flist">' + F.recs.map(item).join("") + "</ol></section></div>";
+  }
+  /* попередній звіт з архіву — для порівняння у висновках */
+  async function loadPrev() {
+    if (!STATE || !STATE.report) return;
+    const R = STATE.report;
+    const prev = ARCHIVE.filter(x => x.to < R.period.from).sort((a, b) => b.to.localeCompare(a.to))[0];
+    if (!prev || (STATE.prev && STATE.prev.R.id === prev.id)) return;
+    let rep = null;
+    for (const u of ["reports/" + prev.id + ".json", RAW + "reports/" + prev.id + ".json"]) { try { rep = await fetchJSON(u); break; } catch (e) {} }
+    if (!rep || !STATE || STATE.report !== R) return;
+    STATE.prev = aggregate(rep);
+    const el = $("findings");
+    if (el) el.outerHTML = findingsHtml(STATE.A);
   }
   function risksHtml(A) {
     const C = A.C, items = [];
@@ -653,8 +795,9 @@
       "</div></details>");
 
     // теми
-    h.push('<section class="block" id="themesBlock"><h2>Теми й тексти ІМІ</h2><p class="lead">Матеріали згруповано за тим, на який текст чи напрям ІМІ вони посилаються: усі згадки моніторингу стандартів разом, усі згадки Барометра разом тощо. Площа плитки — частка підтвердженого охоплення. Проєктні плашки (' + fmt(C.viewsDonor) + ", " + pct(C.viewsDonor, C.viewsAll) + ') на мапі не показано, вони окремою темою в списку. Натисніть на плитку, щоб побачити матеріали.</p>' +
+    h.push('<section class="block" id="themesBlock"><h2>Теми й тексти ІМІ</h2><p class="lead">Матеріали згруповано за тим, на який текст чи напрям ІМІ вони посилаються: усі згадки моніторингу стандартів разом, усі згадки Барометра разом тощо. <span class="screen-only">Площа плитки — частка підтвердженого охоплення. Проєктні плашки (' + fmt(C.viewsDonor) + ", " + pct(C.viewsDonor, C.viewsAll) + ') на мапі не показано, вони окремою темою в списку. Натисніть на плитку, щоб побачити матеріали.</span></p>' +
       '<div class="tmap" id="tmap" role="img" aria-label="Мапа тем за охопленням"></div>' +
+      '<div class="tlist-print">' + A.themes.filter(t => t.views > 0).map(t => '<div class="tlp"><span class="tlp-n">' + esc(t.name) + "<small>" + nw(t.count, WD.mat) + ", " + nw(t.srcCount, WD.src) + '</small></span><span class="tlp-bar"><i style="width:' + Math.max(1, pctN(t.views, A.themes.reduce((mx, x) => Math.max(mx, x.views), 1))).toFixed(1) + "%;background:" + themeColor(t, pctN(t.views, A.total)).bg + '"></i></span><span class="tlp-v"><b>' + fmt(t.views) + "</b>" + pct(t.views, A.total) + "</span></div>").join("") + "</div>" +
       '<div class="tmap-note"><span><i style="background:var(--blue)"></i>20% охоплення й більше</span><span><i style="background:var(--blue-70)"></i>5–20%</span><span><i style="background:var(--blue-50)"></i>2–5%</span><span><i style="background:var(--blue-30)"></i>менше 2%</span><span><i style="background:var(--green-soft)"></i>власні публікації</span><span><i style="background:var(--gray-tile)"></i>інші згадки</span></div>' +
       '<div class="themes">' + A.themes.map(t => themeBlock(t, A, A.themes.filter(x => x.key !== "donor").slice(0, 2).includes(t))).join("") + "</div></section>");
 
@@ -696,8 +839,7 @@
     h.push('<section class="block"><h2>Медіадиспропорції й ризики викривлення</h2><p class="lead">Що варто знати, перш ніж цитувати цифри цього звіту.</p>' + risksHtml(A) + "</section>");
 
     // висновки
-    h.push('<div class="findings"><section class="block"><h2>Висновки</h2><ol class="flist">' + conclusions(A).map(x => "<li>" + esc(x) + "</li>").join("") + "</ol></section>" +
-      '<section class="block recs"><h2>Рекомендації для комунікацій</h2><ol class="flist">' + recommendations(A).map(x => "<li>" + esc(x) + "</li>").join("") + "</ol></section></div>");
+    h.push(findingsHtml(A));
 
     // шум
     h.push('<section class="block no-print"><h2>Шум і сумнівні випадки</h2><p class="lead">' + nw(R.noise.length, WD.row) + " виключено з усіх розрахунків, разом вони додавали б " + fmt(C.viewsNoise) + " переглядів. Кожне рішення можна перевірити за посиланням.</p>" +
@@ -720,6 +862,7 @@
     $("reportRoot").innerHTML = h.join("");
     drawTreemap(A);
     drawRegistry();
+    if (ARCHIVE.length) loadPrev();
     bindReport();
   }
 
