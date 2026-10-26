@@ -686,7 +686,7 @@
       (A.experts.length ? '<div class="experts">' + A.experts.map(e => {
         const role = (e.items.find(m => m.expert && m.expert.role) || {}).expert;
         return '<div class="expert"><div class="en">' + esc(e.key) + '</div><div class="er">' + esc(role && role.role ? role.role : "") + ", " + nw(e.count, WD.mat) + ", " + fmt(e.views) + " переглядів</div><ul>" +
-          e.items.slice().sort((a, b) => b.views - a.views).map(m => "<li>" + mLinked(m, 90) + "<span>" + esc(srcLabel(m)) + ", " + esc(A.themeName[m.theme] || "") + ", " + fmt(m.views) + "</span></li>").join("") + "</ul></div>";
+          e.items.slice().sort((a, b) => b.views - a.views).map((m, k) => "<li" + (k >= 3 ? ' class="pextra"' : "") + ">" + mLinked(m, 90) + "<span>" + esc(srcLabel(m)) + ", " + esc(A.themeName[m.theme] || "") + ", " + fmt(m.views) + "</span></li>").join("") + "</ul>" + (e.items.length > 3 ? '<div class="ponly">і ще ' + nw(e.items.length - 3, WD.mat) + " — повний список на сайті</div>" : "") + "</div>";
       }).join("") + "</div>" : '<p class="prose">Наданих даних недостатньо: прямих коментарів названих представників ІМІ з посадою в масиві не знайдено.</p>') + "</section>");
 
     // географія
@@ -700,7 +700,7 @@
       '<section class="block recs"><h2>Рекомендації для комунікацій</h2><ol class="flist">' + recommendations(A).map(x => "<li>" + esc(x) + "</li>").join("") + "</ol></section></div>");
 
     // шум
-    h.push('<section class="block"><h2>Шум і сумнівні випадки</h2><p class="lead">' + nw(R.noise.length, WD.row) + " виключено з усіх розрахунків, разом вони додавали б " + fmt(C.viewsNoise) + " переглядів. Кожне рішення можна перевірити за посиланням.</p>" +
+    h.push('<section class="block no-print"><h2>Шум і сумнівні випадки</h2><p class="lead">' + nw(R.noise.length, WD.row) + " виключено з усіх розрахунків, разом вони додавали б " + fmt(C.viewsNoise) + " переглядів. Кожне рішення можна перевірити за посиланням.</p>" +
       (R.noise.length ? '<div class="tbl-wrap scroll"><table><thead><tr><th>Причина</th><th>Джерело</th><th>Заголовок</th><th class="n">Перегляди</th></tr></thead><tbody>' +
         R.noise.map(n => '<tr><td class="sub" style="max-width:260px">' + esc(n.why) + "</td><td>" + esc(n.place ? n.place + " (" + platform(n.src) + ")" : n.src) + "</td><td>" + (safeUrl(n.url) ? '<a href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(clip(n.title, 110)) + "</a>" : esc(clip(n.title, 110)) + ' <span class="pill warn">URL відсутній у файлі</span>') + '</td><td class="n">' + fmt(n.views) + "</td></tr>").join("") + "</tbody></table></div>" : "") +
       (R.doubtful && R.doubtful.length ? '<h3 style="margin-top:26px">Сумнівні випадки</h3><p class="lead" style="margin-bottom:10px">Зараховано, але варто глянути вручну.</p><ul class="risk">' +
@@ -710,7 +710,7 @@
     // реєстр
     const themeOpts = A.themes.map(t => '<option value="' + esc(t.key) + '">' + esc(t.name) + " (" + t.count + ")</option>").join("");
     const kindOpts = A.kinds.map(k => '<option value="' + esc(k.key) + '">' + esc(R.kinds[k.key]) + " (" + k.count + ")</option>").join("");
-    h.push('<section class="block" id="registry"><h2>Реєстр матеріалів</h2><p class="lead">Усі зараховані матеріали, по одному рядку на матеріал, від найбільших переглядів. Кількість рядків дорівнює кількості матеріалів у контрольних підсумках (' + fmt(C.materials) + ").</p>" +
+    h.push('<section class="block no-print" id="registry"><h2>Реєстр матеріалів</h2><p class="lead">Усі зараховані матеріали, по одному рядку на матеріал, від найбільших переглядів. Кількість рядків дорівнює кількості матеріалів у контрольних підсумках (' + fmt(C.materials) + ").</p>" +
       '<div class="filters"><input id="q" type="search" placeholder="Пошук за заголовком або джерелом" aria-label="Пошук"><select id="fTheme" aria-label="Тема"><option value="">Усі теми</option>' + themeOpts + '</select><select id="fKind" aria-label="Тип згадки"><option value="">Усі типи згадок</option>' + kindOpts + '</select><select id="fStat" aria-label="Статус"><option value="">Earned, owned і плашки</option><option value="ed">Лише редакційні</option><option value="don">Лише плашки</option><option value="own">Лише owned</option></select></div>' +
       '<div class="reg-count" id="regCount"></div><div class="tbl-wrap reg"><table id="reg"></table></div></section>');
 
@@ -724,9 +724,8 @@
   }
 
   function shareButton(link) {
-    const shortLink = link.replace(/^https?:\/\//, "");
     if (STATE.saving) return '<button class="share-btn busy" type="button" disabled><span class="ic">' + icon("spin", "spin") + "</span><span><b>Зберігаємо в архів…</b><small>Посилання з’явиться за кілька секунд</small></span></button>";
-    if (STATE.saved) return '<button class="share-btn" type="button" id="copyLink" data-link="' + esc(link) + '"><span class="ic">' + icon("link") + '</span><span><b>Копіювати посилання</b><small>' + esc(shortLink) + "</small></span></button>";
+    if (STATE.saved) return '<button class="share-btn" type="button" id="copyLink" data-link="' + esc(link) + '"><span class="ic">' + icon("link") + '</span><span><b>Копіювати посилання</b></span></button>';
     return '<button class="share-btn save" type="button" id="saveOpen"><span class="ic">' + icon("cloud") + "</span><span><b>Зберегти й отримати посилання</b><small>Звіт з’явиться в архіві на головній</small></span></button>";
   }
   function themeBlock(t, A, open) {
@@ -736,7 +735,7 @@
     let body = '<p class="desc">' + themeDesc(t, A) + "</p>";
     if (t.stories.length) {
       body += "<h3>" + (t.key === "donor" ? "Повторні публікації" : "Тексти, які переказали кілька медіа й каналів") + "</h3>";
-      body += t.stories.slice(0, 6).map(s => '<div class="story"><div class="story-h"><div class="st">' + esc(clip(s.title, 150)) + "<em>" + nw(s.items.length, WD.mat) + (s.imiSource ? ", першоджерело — сайт ІМІ" : "") + '</em></div><div class="sv">' + fmt(s.views) + "</div></div>" +
+      body += t.stories.slice(0, 6).map((s, si) => '<div class="story' + (si >= 3 ? " pextra" : "") + '"><div class="story-h"><div class="st">' + esc(clip(s.title, 150)) + "<em>" + nw(s.items.length, WD.mat) + (s.imiSource ? ", першоджерело — сайт ІМІ" : "") + '</em></div><div class="sv">' + fmt(s.views) + "</div></div>" +
         '<ul class="mlist collapsed" id="sl-' + esc(s.id) + '">' + s.items.slice().sort((a, b) => b.views - a.views).map((m, i) => mItem(m, A, i >= 5)).join("") + "</ul>" +
         (s.items.length > 5 ? '<button class="more" type="button" data-expand="sl-' + esc(s.id) + '" data-n="' + s.items.length + '" data-label="сюжету">Показати всі ' + nw(s.items.length, WD.mat) + " сюжету</button>" : "") + "</div>").join("");
     }

@@ -67,6 +67,7 @@ a:hover { text-decoration-thickness: 2px; }
 .btn-yellow:hover { background: #F0BC10; }
 .btn[disabled] { opacity: .55; cursor: progress; }
 .btn svg { width: 19px; height: 19px; flex: 0 0 auto; }
+.ponly { display: none; }
 .ico.spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -378,8 +379,27 @@ footer.foot p { margin: 0 0 8px; max-width: 100ch; }
   body { background: #fff; font-size: 12.5px; }
   .wrap { width: auto; }
   .topnav, .rep-actions, .notice, .filters, .more, .control > summary .btn, .rep-head .back, .tip, .modal, .veil, .toast, #home { display: none !important; }
-  .block, .reach, .theme, .story, .expert, .rstat { break-inside: avoid; }
-  .block { padding: 14px 0; border-radius: 0; margin-top: 8px; }
+  .no-print, .pextra { display: none !important; }
+  .ponly { display: block !important; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  /* великі блоки не тримаємо цілими — інакше браузер лишає порожні сторінки */
+  .reach, .story, .rstat, .expert, .bar-row, .mlist li, .risk li, .flist li, .ctable div { break-inside: avoid; }
+  .block { padding: 14px 0; border-radius: 0; margin-top: 8px; break-inside: auto; }
+  .grid2, .findings { display: block; }
+  .grid2 > .block, .findings > .block { margin-top: 8px; }
+  .experts { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .expert { padding: 12px 14px; border-radius: 15px; }
+  .expert .en { font-size: 15px; }
+  .expert .er { font-size: 11px; margin-bottom: 4px; }
+  .expert ul { font-size: 11px; }
+  .expert li { padding: 4px 0; }
+  .days { height: 200px; }
+  .theme > summary { padding: 10px 12px; }
+  .theme .chev { display: none; }
+  .story { padding: 8px 12px; margin-top: 4px; }
+  .story .mlist, .story .more { display: none !important; }
+  .theme-body .desc { font-size: 12px; margin-bottom: 10px; }
+  .theme-body h3 { font-size: 14px; margin: 10px 0 4px; }
+  .mlist li { padding: 5px 0; font-size: 11.5px; }
   .themes .theme { break-inside: auto; }
   .reach, .tile, .mixbar i, .track i, .tonebar i, .day .col, .pill, .theme .sw, .theme .tbar i, .mini i, .flist li::before, .rstat.wide { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .reg, .scroll { max-height: none !important; overflow: visible !important; }
