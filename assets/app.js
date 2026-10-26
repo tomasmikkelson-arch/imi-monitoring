@@ -69,6 +69,20 @@
   };
   const TONE_COLOR = { "Позитив": "var(--green)", "Нейтрал": "#8A93B2", "Негатив": "var(--red)" };
 
+  /* ───────────── іконки ───────────── */
+  const ICON_PATHS = {
+    link: '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    pdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="m9 14.5 3 3 3-3"/>',
+    upload: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 14.5 3-3 3 3"/>',
+    grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+    cloud: '<path d="M12 13v8"/><path d="m8.5 16.5 3.5-3.5 3.5 3.5"/><path d="M20 16.6A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>',
+    key: '<circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.3-8.3"/><path d="m17 6 2.5 2.5"/><path d="m14.5 8.5 2 2"/>',
+    spin: '<path d="M21 12a9 9 0 1 1-6.22-8.56"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/>'
+  };
+  const icon = (n, cls) => '<svg class="ico' + (cls ? " " + cls : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON_PATHS[n] + "</svg>";
+
   /* ───────────── завантажувач (без змін) ───────────── */
   const VEIL_LINES = [
     "Калібрування варп-ядра",
@@ -276,9 +290,11 @@
       const known = ARCHIVE.find(x => x.id === report.id && x.fileHash && x.fileHash === hash);
       STATE = { report, saved: !!known };
       await hold(Math.max(0, 10000 - (Date.now() - started)));
-      openReport();
       if (known) history.replaceState(null, "", "?r=" + encodeURIComponent(report.id));
+      else if (getToken()) STATE.saving = true;
+      openReport();
       hideVeil();
+      if (STATE.saving) autoSave();
     } catch (e) {
       hideVeil();
       showErr("Не вдалося прочитати файл: " + (e && e.message ? e.message : e));
@@ -289,12 +305,12 @@
   /* ═════════════ МАРШРУТИ ═════════════ */
   function showHome() {
     $("home").hidden = false; $("report").hidden = true;
-    $("topnav").innerHTML = "";
+    $("topnav").innerHTML = getToken() ? '<span class="chip-ok">' + icon("check") + "Збереження в архів увімкнено</span>" : "";
     document.title = "Моніторинг згадок ІМІ";
   }
   function openReport() {
     $("home").hidden = true; $("report").hidden = false;
-    $("topnav").innerHTML = '<a class="btn btn-quiet" href="./">Усі звіти</a>';
+    $("topnav").innerHTML = '<a class="btn btn-dark" href="./">' + icon("grid") + "Усі звіти</a>";
     renderReport();
     window.scrollTo(0, 0);
   }
@@ -588,15 +604,15 @@
     const h = [];
 
     // шапка
-    h.push('<div class="rep-head"><a class="back" href="./">← Усі звіти</a><div><h1>' + esc(periodLabel(R.period.from, R.period.to)) + "</h1>" +
+    h.push('<div class="rep-head"><div><h1>' + esc(periodLabel(R.period.from, R.period.to)) + "</h1>" +
       '<div class="meta">Моніторинг згадок ІМІ за вигрузкою Looqme' + (R.fileName ? ", файл " + esc(R.fileName) : "") + "</div></div>" +
-      '<div class="rep-actions">' +
-      (STATE.saved ? '<button class="btn btn-quiet" type="button" id="copyLink">Копіювати посилання</button>' : '<button class="btn btn-yellow" type="button" id="saveOpen">Зберегти в архів</button>') +
-      '<button class="btn btn-quiet" type="button" id="printBtn">Зберегти PDF</button>' +
-      '<button class="btn btn-quiet" type="button" id="newFile">Інший файл</button></div></div>');
+      '<div class="rep-actions">' + shareButton(link) +
+      '<div class="rep-sub"><button class="btn btn-quiet" type="button" id="printBtn">' + icon("pdf") + 'Зберегти PDF</button>' +
+      '<button class="btn btn-quiet" type="button" id="newFile">' + icon("upload") + "Інший файл</button></div></div></div>");
 
-    if (!STATE.saved) h.push('<div class="notice" id="saveNotice"><p>Звіт порахований у вашому браузері, але ще не збережений. Збережіть його в архів, щоб він з’явився на головній і мав постійне посилання.</p><button class="btn btn-primary" type="button" id="saveOpen2">Зберегти в архів</button></div>');
-    else if (STATE.justSaved) h.push('<div class="notice ok"><p>Звіт збережено в архіві. Посилання: <code>' + esc(link) + "</code>. Для інших людей сторінка з’явиться протягом хвилини.</p></div>");
+    if (STATE.saveError) h.push('<div class="notice warn" role="alert">' + icon("alert", "big") + "<p><b>Звіт не збережено.</b> " + esc(STATE.saveError) + '</p><button class="btn btn-primary" type="button" id="saveOpen2">Спробувати ще раз</button></div>');
+    else if (!STATE.saved && !STATE.saving) h.push('<div class="notice">' + icon("cloud", "big") + "<p>Звіт порахований, але ще не збережений в архів. " + (getToken() ? "Збережіть його, щоб отримати постійне посилання." : "Щоб зберегти його й отримати посилання, потрібен доступ до архіву: посилання-запрошення від адміністратора сайту або ключ GitHub.") + "</p></div>");
+    else if (STATE.justSaved) h.push('<div class="notice ok">' + icon("check", "big") + "<p><b>Звіт збережено в архіві.</b> Посилання вже працює — скопіюйте його кнопкою вгорі й надішліть колегам.</p></div>");
 
     // hero
     const share = (v) => Math.max(0, pctN(v, C.viewsAll));
@@ -707,6 +723,12 @@
     bindReport();
   }
 
+  function shareButton(link) {
+    const shortLink = link.replace(/^https?:\/\//, "");
+    if (STATE.saving) return '<button class="share-btn busy" type="button" disabled><span class="ic">' + icon("spin", "spin") + "</span><span><b>Зберігаємо в архів…</b><small>Посилання з’явиться за кілька секунд</small></span></button>";
+    if (STATE.saved) return '<button class="share-btn" type="button" id="copyLink" data-link="' + esc(link) + '"><span class="ic">' + icon("link") + '</span><span><b>Копіювати посилання</b><small>' + esc(shortLink) + "</small></span></button>";
+    return '<button class="share-btn save" type="button" id="saveOpen"><span class="ic">' + icon("cloud") + "</span><span><b>Зберегти й отримати посилання</b><small>Звіт з’явиться в архіві на головній</small></span></button>";
+  }
   function themeBlock(t, A, open) {
     const c = themeColor(t, pctN(t.views, A.total));
     const maxV = A.themes[0] ? A.themes[0].views : 1;
@@ -783,13 +805,26 @@
 
   function bindReport() {
     const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
-    on("saveOpen", "click", openSave); on("saveOpen2", "click", openSave);
+    on("saveOpen", "click", () => openSave("save")); on("saveOpen2", "click", () => { STATE.saveError = ""; openSave("save"); });
     on("printBtn", "click", () => window.print());
-    on("newFile", "click", () => { history.pushState(null, "", "./"); STATE = null; showHome(); window.scrollTo(0, 0); $("file").click(); });
+    on("newFile", "click", () => { history.pushState(null, "", "./"); STATE = null; route(); window.scrollTo(0, 0); $("file").click(); });
     on("copyLink", "click", async () => {
-      const link = location.origin + location.pathname + "?r=" + encodeURIComponent(STATE.report.id);
-      try { await navigator.clipboard.writeText(link); toast("Посилання скопійовано"); }
-      catch (e) { prompt("Скопіюйте посилання:", link); }
+      const btn = $("copyLink");
+      const link = btn.getAttribute("data-link");
+      let ok = true;
+      try { await navigator.clipboard.writeText(link); }
+      catch (e) {
+        const ta = document.createElement("textarea"); ta.value = link; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+        ta.remove();
+      }
+      if (!ok) { prompt("Скопіюйте посилання:", link); return; }
+      btn.classList.add("done");
+      btn.querySelector(".ic").innerHTML = icon("check");
+      btn.querySelector("b").textContent = "Посилання скопійовано";
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => { btn.classList.remove("done"); btn.querySelector(".ic").innerHTML = icon("link"); btn.querySelector("b").textContent = "Копіювати посилання"; }, 2200);
     });
     ["q", "fTheme", "fKind", "fStat"].forEach(id => on(id, id === "q" ? "input" : "change", drawRegistry));
     $("reportRoot").addEventListener("click", (e) => {
@@ -856,81 +891,130 @@
     if (!r.ok) throw Object.assign(new Error(ghError(r.status)), { status: r.status });
     return r.json();
   }
-  let overwriteOk = false;
-  function openSave() {
-    overwriteOk = false;
+  /* Запис звіту в reports/ і оновлення reports/index.json.
+     Повертає "saved", "same" (той самий файл уже в архіві) або "exists" (інший файл за цей період). */
+  async function persist(R, token, allowOverwrite) {
+    const path = "reports/" + R.id + ".json";
+    const existing = await ghGet(path, token);
+    let skipReport = false, old = null;
+    if (existing) {
+      try { old = JSON.parse(existing.text); } catch (e) {}
+      if (old && old.fileHash && old.fileHash === R.fileHash) skipReport = true;
+      else if (!allowOverwrite) return { status: "exists", old };
+    }
+    const savedAt = new Date().toISOString();
+    if (!skipReport) await ghPut(path, JSON.stringify(Object.assign({}, R, { savedAt })), existing && existing.sha, "Звіт моніторингу " + R.id, token);
+    const entry = {
+      id: R.id, from: R.period.from, to: R.period.to, fileName: R.fileName, fileHash: R.fileHash, savedAt: skipReport && old && old.savedAt ? old.savedAt : savedAt, v: R.v,
+      materials: R.control.materials, viewsAll: R.control.viewsAll, viewsEditorial: R.control.viewsEditorial
+    };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const idx = await ghGet("reports/index.json", token);
+      let data = { reports: [] };
+      if (idx) { try { data = JSON.parse(idx.text); } catch (e) {} }
+      const same = (data.reports || []).find(x => x.id === R.id);
+      if (skipReport && same && same.fileHash === R.fileHash) break;
+      data.reports = (data.reports || []).filter(x => x.id !== R.id);
+      data.reports.push(entry);
+      data.reports.sort((a, b) => String(b.to).localeCompare(String(a.to)) || String(b.from).localeCompare(String(a.from)));
+      try { await ghPut("reports/index.json", JSON.stringify(data, null, 1), idx && idx.sha, "Архів: " + R.id, token); break; }
+      catch (e) { if (!(e.status === 409 || e.status === 422) || attempt === 2) throw e; }
+    }
+    ARCHIVE = ARCHIVE.filter(x => x.id !== R.id).concat([entry]);
+    return { status: skipReport ? "same" : "saved" };
+  }
+  function errText(e) { return e && e.message && !/Failed to fetch|NetworkError|Load failed/i.test(e.message) ? e.message : "Немає зв'язку з GitHub. Перевірте інтернет і спробуйте ще раз."; }
+  function markSaved(R) {
+    STATE.saved = true; STATE.justSaved = true; STATE.saving = false; STATE.saveError = "";
+    history.replaceState(null, "", "?r=" + encodeURIComponent(R.id));
+    renderReport();
+  }
+  async function autoSave() {
+    const R = STATE.report, token = getToken();
+    try {
+      const res = await persist(R, token, false);
+      if (STATE.report !== R) return;
+      if (res.status === "exists") {
+        STATE.saving = false; renderReport();
+        openSave("overwrite", res.old);
+        return;
+      }
+      markSaved(R);
+    } catch (e) {
+      if (STATE.report !== R) return;
+      if (e.status === 401) forgetToken();
+      STATE.saving = false; STATE.saveError = errText(e);
+      renderReport();
+    }
+  }
+
+  /* ───── вікно збереження / налаштування доступу ───── */
+  let modalMode = "save";
+  function inviteLink() { return location.origin + location.pathname + "#access=" + encodeURIComponent(getToken()); }
+  function openSave(mode, old) {
+    modalMode = mode || "save";
+    const has = !!getToken();
     $("saveErr").hidden = true;
     $("repoName").textContent = CFG.repo;
-    const has = !!getToken();
-    $("tokenBox").hidden = has; $("tokenSaved").hidden = !has;
-    $("tokenHelp").open = !has;
-    $("saveGo").textContent = "Зберегти в архів";
+    $("tokenBox").hidden = has; $("tokenSaved").hidden = !has; $("invite").hidden = !has;
+    $("tokenHelp").open = !has; $("tokenHelp").hidden = has;
+    $("saveTitle").textContent = modalMode === "setup" ? "Доступ до збереження" : "Зберегти звіт в архів";
+    $("saveIntro").hidden = modalMode === "setup" && has;
+    $("saveGo").hidden = modalMode === "setup" && has;
+    $("saveGo").textContent = modalMode === "setup" ? "Увімкнути збереження" : modalMode === "overwrite" ? "Перезаписати" : "Зберегти в архів";
+    if (modalMode === "overwrite") {
+      const R = STATE.report;
+      $("saveErr").textContent = "Звіт за " + periodLabel(R.period.from, R.period.to) + " уже є в архіві" + (old && old.fileName ? " (файл " + old.fileName + ")" : "") + ". Перезаписати його цим файлом?";
+      $("saveErr").hidden = false;
+    }
     $("saveModal").hidden = false;
-    setTimeout(() => (has ? $("saveGo") : $("token")).focus(), 30);
+    setTimeout(() => (has ? ($("saveGo").hidden ? $("saveCancel") : $("saveGo")) : $("token")).focus(), 30);
   }
-  function closeSave() { $("saveModal").hidden = true; }
+  function closeSave() { $("saveModal").hidden = true; if (!$("home").hidden) showHome(); }
   $("saveCancel").addEventListener("click", closeSave);
   $("saveModal").addEventListener("click", (e) => { if (e.target === $("saveModal")) closeSave(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("saveModal").hidden) closeSave(); });
-  $("forgetToken").addEventListener("click", () => { forgetToken(); $("tokenBox").hidden = false; $("tokenSaved").hidden = true; $("tokenHelp").open = true; $("token").focus(); });
+  $("forgetToken").addEventListener("click", () => { forgetToken(); openSave(modalMode); });
+  $("copyInvite").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(inviteLink()); toast("Посилання-запрошення скопійовано"); }
+    catch (e) { prompt("Скопіюйте посилання-запрошення:", inviteLink()); }
+  });
+  $("setupLink").addEventListener("click", (e) => { e.preventDefault(); openSave("setup"); });
   $("saveGo").addEventListener("click", saveReport);
   async function saveReport() {
-    const R = STATE.report;
     const errEl = $("saveErr");
     errEl.hidden = true;
     let token = getToken();
     if (!token) {
       token = ($("token").value || "").trim();
-      if (!token) { errEl.textContent = "Вставте ключ GitHub."; errEl.hidden = false; return; }
+      if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(token)) { errEl.textContent = "Це не схоже на ключ GitHub: він починається з github_pat_ або ghp_."; errEl.hidden = false; return; }
       setToken(token, $("rememberToken").checked);
     }
-    const btn = $("saveGo"); btn.disabled = true; btn.textContent = "Зберігаємо…";
+    if (modalMode === "setup") { $("token").value = ""; openSave("setup"); toast("Збереження в архів увімкнено"); return; }
+    const R = STATE.report;
+    const btn = $("saveGo"); btn.disabled = true; const label = btn.textContent; btn.textContent = "Зберігаємо…";
     try {
-      const path = "reports/" + R.id + ".json";
-      const existing = await ghGet(path, token);
-      let skipReport = false;
-      if (existing) {
-        let old = null; try { old = JSON.parse(existing.text); } catch (e) {}
-        if (old && old.fileHash && old.fileHash === R.fileHash) skipReport = true;
-        else if (!overwriteOk) {
-          overwriteOk = true;
-          errEl.textContent = "Звіт за " + periodLabel(R.period.from, R.period.to) + " уже є в архіві" + (old && old.fileName ? " (файл " + old.fileName + ")" : "") + ". Натисніть «Перезаписати», щоб замінити його цим файлом.";
-          errEl.hidden = false; btn.disabled = false; btn.textContent = "Перезаписати"; return;
-        }
-      }
-      const savedAt = new Date().toISOString();
-      if (!skipReport) {
-        const out = Object.assign({}, R, { savedAt });
-        await ghPut(path, JSON.stringify(out), existing && existing.sha, "Звіт моніторингу " + R.id, token);
-      }
-      const entry = {
-        id: R.id, from: R.period.from, to: R.period.to, fileName: R.fileName, fileHash: R.fileHash, savedAt, v: R.v,
-        materials: R.control.materials, viewsAll: R.control.viewsAll, viewsEditorial: R.control.viewsEditorial
-      };
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const idx = await ghGet("reports/index.json", token);
-        let data = { reports: [] };
-        if (idx) { try { data = JSON.parse(idx.text); } catch (e) {} }
-        data.reports = (data.reports || []).filter(x => x.id !== R.id);
-        data.reports.push(entry);
-        data.reports.sort((a, b) => String(b.to).localeCompare(String(a.to)) || String(b.from).localeCompare(String(a.from)));
-        try { await ghPut("reports/index.json", JSON.stringify(data, null, 1), idx && idx.sha, "Архів: " + R.id, token); break; }
-        catch (e) { if (!(e.status === 409 || e.status === 422) || attempt === 2) throw e; }
-      }
-      ARCHIVE = ARCHIVE.filter(x => x.id !== R.id).concat([entry]);
-      STATE.saved = true; STATE.justSaved = true;
-      history.replaceState(null, "", "?r=" + encodeURIComponent(R.id));
+      const res = await persist(R, token, modalMode === "overwrite");
+      if (res.status === "exists") { btn.disabled = false; btn.textContent = label; openSave("overwrite", res.old); return; }
       closeSave();
-      renderReport();
-      toast("Звіт збережено в архіві");
+      markSaved(R);
     } catch (e) {
       if (e.status === 401) forgetToken();
-      errEl.textContent = e.message && !/Failed to fetch/i.test(e.message) ? e.message : "Немає зв'язку з GitHub. Перевірте інтернет і спробуйте ще раз.";
+      errEl.textContent = errText(e);
       errEl.hidden = false;
-      if (!getToken()) { $("tokenBox").hidden = false; $("tokenSaved").hidden = true; }
+      if (!getToken()) { $("tokenBox").hidden = false; $("tokenSaved").hidden = true; $("invite").hidden = true; }
     }
-    btn.disabled = false; if (btn.textContent === "Зберігаємо…") btn.textContent = "Зберегти в архів";
+    btn.disabled = false; btn.textContent = label;
   }
+
+  /* Посилання-запрошення: #access=<ключ> вмикає збереження на цьому пристрої й одразу зникає з адреси. */
+  (function readInvite() {
+    const m = location.hash.match(/access=([^&]+)/);
+    if (!m) return;
+    const t = decodeURIComponent(m[1]);
+    history.replaceState(null, "", location.pathname + location.search);
+    if (/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(t)) { setToken(t, true); setTimeout(() => toast("Збереження в архів увімкнено на цьому пристрої"), 6000); }
+  })();
 
   /* ═════════════ ПОДІЇ ГОЛОВНОЇ ═════════════ */
   $("pick").addEventListener("click", () => $("file").click());
@@ -941,7 +1025,7 @@
   gate.addEventListener("drop", e => { e.preventDefault(); gate.classList.remove("hot"); handleFile(e.dataTransfer.files && e.dataTransfer.files[0]); });
   $("homeLink").addEventListener("click", (e) => { if (!$("report").hidden) { e.preventDefault(); history.pushState(null, "", "./"); STATE = null; route(); } });
   document.addEventListener("click", (e) => {
-    const a = e.target.closest && e.target.closest('a.back, .topnav a, a.arch-item');
+    const a = e.target.closest && e.target.closest('.topnav a, a.arch-item');
     if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
     history.pushState(null, "", a.getAttribute("href"));

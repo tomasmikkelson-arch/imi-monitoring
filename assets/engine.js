@@ -428,7 +428,7 @@
       const maxViews = Math.max.apply(null, members.map(m => m.views));
       const notes = [];
       const mirrors = members.slice(1).map((m) => {
-        return { url: m.url || "", src: m.source, date: m.date, time: m.time, views: m.views, why: foldNote.get(kept.indexOf(m)) || "дубль" };
+        return { url: m.url || "", src: m.source, date: m.date, time: m.time, views: m.views, why: foldNote.get(kept.indexOf(m)) || foldNote.get(kept.indexOf(p)) || "дубль" };
       });
       mirrors.forEach(x => { if (/мовна версія|ролик/.test(x.why)) notes.push(x.why); });
       const owned = members.some(m => m.ownedFlag);

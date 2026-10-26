@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="preload" href="assets/fonts/KyivTypeSans-Bold.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=2.0.0">
+<link rel="stylesheet" href="assets/style.css?v=2.1.0">
 </head>
 <body>
 <div id="veil" class="veil">
@@ -42,7 +42,7 @@
           <h2>Файл із Looqme</h2>
           <p>Excel, аркуш «Статті», перший рядок — заголовки колонок. Перетягніть файл сюди або оберіть його на комп'ютері. Підрахунок іде у вашому браузері.</p>
           <div class="row">
-            <button class="btn btn-primary" id="pick" type="button">Обрати файл .xlsx</button>
+            <button class="btn btn-primary btn-lg" id="pick" type="button"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 14.5 3-3 3 3"/></svg>Обрати файл .xlsx</button>
             <span class="fine">Той самий файл щоразу дає ті самі цифри.</span>
           </div>
           <input id="file" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -52,7 +52,7 @@
       <div class="archive">
         <div class="sec-head">
           <h2>Збережені звіти</h2>
-          <p id="archHint">Звіти за періодами вигрузок Looqme</p>
+          <p id="archHint">Звіти за періодами вигрузок Looqme. <a href="#" id="setupLink">Доступ до збереження</a></p>
         </div>
         <div id="archive" class="arch-list"><div class="arch-empty">Завантажуємо архів…</div></div>
       </div>
@@ -69,7 +69,7 @@
 <div class="modal" id="saveModal" hidden role="dialog" aria-modal="true" aria-labelledby="saveTitle">
   <div class="modal-card">
     <h2 id="saveTitle">Зберегти звіт в архів</h2>
-    <p>Звіт запишеться у репозиторій сайту на GitHub (папка <b>reports</b>) і з'явиться в списку на головній. Для запису потрібен ключ доступу GitHub — його вводять один раз на цьому пристрої.</p>
+    <p id="saveIntro">Звіт запишеться в архів сайту й з’явиться в списку на головній з постійним посиланням. Для запису потрібен доступ: відкрийте посилання-запрошення від адміністратора сайту або вставте ключ GitHub — це робиться один раз на пристрої.</p>
     <details id="tokenHelp">
       <summary style="cursor:pointer;font-weight:600;margin-bottom:8px">Як отримати ключ</summary>
       <ol>
@@ -84,10 +84,15 @@
       <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
       <label class="check"><input type="checkbox" id="rememberToken" checked> Запам'ятати на цьому пристрої</label>
     </div>
-    <p id="tokenSaved" hidden style="margin-top:12px">Ключ уже збережено на цьому пристрої. <button type="button" class="more" id="forgetToken" style="margin:0">Забути ключ</button></p>
+    <p id="tokenSaved" hidden style="margin-top:12px">Збереження в архів на цьому пристрої увімкнено. <button type="button" class="more" id="forgetToken" style="margin:0">Вимкнути</button></p>
+    <div id="invite" class="invite" hidden>
+      <b>Посилання-запрошення для колег</b>
+      <p>Людина відкриває його один раз — і на її пристрої теж вмикається збереження звітів. Ні GitHub, ні ключ їй не потрібні. Надсилайте лише своїм: хто має це посилання, може записувати звіти в архів.</p>
+      <button class="btn btn-dark" type="button" id="copyInvite"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.3-8.3"/><path d="m17 6 2.5 2.5"/><path d="m14.5 8.5 2 2"/></svg>Скопіювати запрошення</button>
+    </div>
     <div class="merr" id="saveErr" hidden></div>
     <div class="acts">
-      <button class="btn btn-quiet" type="button" id="saveCancel">Скасувати</button>
+      <button class="btn btn-quiet" type="button" id="saveCancel">Закрити</button>
       <button class="btn btn-primary" type="button" id="saveGo">Зберегти в архів</button>
     </div>
   </div>
@@ -96,7 +101,7 @@
 <div class="tip" id="tip" role="tooltip"></div>
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/engine.js?v=2.0.0"></script>
-<script src="assets/app.js?v=2.0.0"></script>
+<script src="assets/engine.js?v=2.1.0"></script>
+<script src="assets/app.js?v=2.1.0"></script>
 </body>
 </html>
