@@ -374,12 +374,22 @@ footer.foot p { margin: 0 0 8px; max-width: 100ch; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-/* ───── друк / PDF ───── */
+/* ───── друк / PDF ─────
+   Правила PDF однакові для всіх звітів, і для тих, що створюватимуть згодом:
+   1. Сторінка 1 — лише шапка з періодом і синій блок охоплення; «Головне» завжди з нової сторінки (.pdf-page-start).
+   2. У PDF не друкуються: контрольні підсумки, шум і сумнівні випадки, реєстр матеріалів,
+      кнопки, плашки-повідомлення, мапа-плитки (позначено класом .no-print або перелічено нижче).
+   3. Теми друкуються списком (.tlist-print), повторювані тексти — лише заголовком і сумою,
+      експерти — двома колонками, до 3 матеріалів на людину.
+   4. Посилання підкреслені й клікабельні.
+   Щоб прибрати з PDF ще якийсь блок — додайте йому клас no-print. */
 @page { size: A4; margin: 14mm 12mm; }
 @media print {
   body { background: #fff; font-size: 12.5px; }
   .wrap { width: auto; }
   .topnav, .rep-actions, .notice, .filters, .more, .control > summary .btn, .rep-head .back, .tip, .modal, .veil, .toast, #home { display: none !important; }
+  .pdf-page-start { break-before: page; page-break-before: always; margin-top: 0 !important; }
+  .control { display: none !important; }
   .no-print, .pextra, .tmap, .tmap-note, .screen-only { display: none !important; }
   .tlist-print { display: block; margin-top: 6px; }
   .tlp { display: grid; grid-template-columns: minmax(0, 1fr) 150px 92px; gap: 12px; align-items: center; padding: 7px 12px; margin-top: 4px; background: var(--paper); border-radius: 12px; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

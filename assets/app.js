@@ -776,12 +776,12 @@
       "</div></section>");
 
     // головне
-    h.push('<section class="block"><h2>Головне</h2><div class="prose">' + summaryHtml(A) + "</div></section>");
+    h.push('<section class="block pdf-page-start"><h2>Головне</h2><div class="prose">' + summaryHtml(A) + "</div></section>");
 
     // контроль
     const ng = R.control.noiseByGroup || {};
     const crow = (k, v, hl) => "<div" + (hl ? ' class="hl"' : "") + "><span>" + k + "</span><b>" + v + "</b></div>";
-    h.push('<details class="block control"><summary><div><h2>Контрольні підсумки</h2><p>Два прогони того самого файлу мають збігтися рядок у рядок. Контроль колонок: ЗМІ ' + fmt(C.sumZmi) + ", соцмережі " + fmt(C.sumSoc) + '.</p></div><span class="btn btn-quiet">Показати</span></summary><div class="ctable">' +
+    h.push('<details class="block control no-print"><summary><div><h2>Контрольні підсумки</h2><p>Два прогони того самого файлу мають збігтися рядок у рядок. Контроль колонок: ЗМІ ' + fmt(C.sumZmi) + ", соцмережі " + fmt(C.sumSoc) + '.</p></div><span class="btn btn-quiet">Показати</span></summary><div class="ctable">' +
       crow("Файл", esc(R.fileName || "—")) + crow("Період (мін. і макс. «Дата виходу»)", esc(R.period.from + " – " + R.period.to)) +
       crow("Рядків у файлі", fmt(C.rows)) + crow("Рядків-шуму всього", fmt(C.noiseRows)) +
       Object.keys(E.NOISE_GROUPS).map(g => crow("— " + E.NOISE_GROUPS[g].toLowerCase(), fmt(ng[g] || 0))).join("") +
@@ -988,7 +988,7 @@
   window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (STATE && STATE.A && !$("report").hidden) drawTreemap(STATE.A); }, 120); });
   let printOpen = [];
   window.addEventListener("beforeprint", () => {
-    printOpen = Array.from(document.querySelectorAll("details.theme:not([open]), details.control:not([open])"));
+    printOpen = Array.from(document.querySelectorAll("details.theme:not([open])"));
     printOpen.forEach(d => { d.open = true; });
   });
   window.addEventListener("afterprint", () => { printOpen.forEach(d => { d.open = false; }); printOpen = []; });
