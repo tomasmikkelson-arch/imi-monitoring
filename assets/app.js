@@ -306,7 +306,7 @@
   function showHome() {
     $("home").hidden = false; $("report").hidden = true;
     $("topnav").innerHTML = getToken() ? '<span class="chip-ok">' + icon("check") + "Збереження в архів увімкнено</span>" : "";
-    document.title = "Моніторинг згадок ІМІ";
+    document.title = "Медіамоніторинг";
   }
   function openReport() {
     $("home").hidden = true; $("report").hidden = false;
@@ -768,7 +768,7 @@
     const A = aggregate(R);
     const C = A.C;
     STATE.A = A;
-    document.title = "Моніторинг ІМІ: " + periodLabel(R.period.from, R.period.to);
+    document.title = "Медіамоніторинг: " + periodLabel(R.period.from, R.period.to);
     const link = location.origin + location.pathname + "?r=" + encodeURIComponent(R.id);
     const h = [];
 
