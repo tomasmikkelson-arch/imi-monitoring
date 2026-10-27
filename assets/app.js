@@ -703,7 +703,7 @@
       const c = themeColor(t, pctN(t.views, A.total));
       return '<button type="button" class="tov-card' + (i === 0 ? " first" : "") + (c.dark ? " dark" : "") + '" data-theme="' + esc(t.key) + '" style="background:' + c.bg + '">' +
         '<span class="tov-name">' + esc(t.name) + "</span>" +
-        '<span class="tov-num"><b>' + fmt(t.views) + "</b><span>" + pct(t.views, A.total) + " охоплення</span></span>" +
+        '<span class="tov-num"><b class="fit">' + fmt(t.views) + "</b><span>" + pct(t.views, A.total) + " охоплення</span></span>" +
         '<span class="tov-bar"><i style="width:' + Math.max(2, pctN(t.views, max)).toFixed(1) + '%"></i></span>' +
         '<span class="tov-meta">' + meta(t) + "</span></button>";
     };
@@ -785,7 +785,7 @@
 
     // hero
     const share = (v) => Math.max(0, pctN(v, C.viewsAll));
-    h.push('<section class="reach" aria-label="Охоплення"><div><div class="lbl">Підтверджене охоплення, переглядів</div><div class="big num">' + fmt(C.viewsAll) + "</div>" +
+    h.push('<section class="reach" aria-label="Охоплення"><div><div class="lbl">Підтверджене охоплення, переглядів</div><div class="big num fit">' + fmt(C.viewsAll) + "</div>" +
       '<div class="mixbar" role="img" aria-label="Склад охоплення">' +
       '<i style="width:' + share(C.viewsEditorial) + '%;background:#fff" data-tip="Редакційні згадки: ' + fmt(C.viewsEditorial) + '"></i>' +
       '<i style="width:' + share(C.viewsDonor) + '%;background:var(--dust)" data-tip="Проєктні плашки: ' + fmt(C.viewsDonor) + '"></i>' +
@@ -794,10 +794,10 @@
       '<span><i style="background:var(--dust)"></i>Плашки ' + fmt(C.viewsDonor) + " (" + pct(C.viewsDonor, C.viewsAll) + ")</span>" +
       '<span><i style="background:var(--yellow)"></i>Власні ' + fmt(C.viewsOwned) + "</span></div></div>" +
       '<div class="reach-side">' +
-      '<div class="rstat"><b class="num">' + fmt(C.materials) + "</b><span>" + plural(C.materials, WD.mat) + " після очищення</span></div>" +
-      '<div class="rstat"><b class="num">' + fmt(A.media.length) + "</b><span>медіа й каналів</span></div>" +
-      '<div class="rstat"><b class="num">' + fmt(C.editorial) + "</b><span>редакційних згадок</span></div>" +
-      '<div class="rstat"><b class="num">' + fmt(C.donor) + "</b><span>проєктних плашок</span></div>" +
+      '<div class="rstat"><b class="num fit">' + fmt(C.materials) + "</b><span>" + plural(C.materials, WD.mat) + " після очищення</span></div>" +
+      '<div class="rstat"><b class="num fit">' + fmt(A.media.length) + "</b><span>медіа й каналів</span></div>" +
+      '<div class="rstat"><b class="num fit">' + fmt(C.editorial) + "</b><span>редакційних згадок</span></div>" +
+      '<div class="rstat"><b class="num fit">' + fmt(C.donor) + "</b><span>проєктних плашок</span></div>" +
       "</div></section>");
 
     // головне
@@ -885,6 +885,8 @@
 
     $("reportRoot").innerHTML = h.join("");
     drawTreemap(A);
+    fitAll();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
     drawRegistry();
     if (ARCHIVE.length) loadPrev();
     bindReport();
@@ -932,7 +934,7 @@
     const best = A.days.slice().sort((a, b) => b.views - a.views)[0];
     return '<section class="block"><h2>По днях</h2><p class="lead">Підтверджені перегляди матеріалів за датою виходу.' + (best && best.views ? " Пік — " + dateShort(best.date) + ": " + fmt(best.views) + "." : "") + "</p>" +
       '<div class="days" style="--n:' + Math.max(1, A.days.length) + '">' + A.days.map(d => '<div class="day" data-tip="<b>' + esc(d.wd + ", " + dateShort(d.date)) + "</b><br>" + fmt(d.views) + " переглядів<br>" + nw(d.count, WD.mat) + '">' +
-        '<span class="dv">' + (A.days.length <= 10 ? fmt(d.views) : "") + '</span><div class="col" style="height:' + Math.max(1.5, (100 * d.views) / max) * 0.72 + '%"></div>' +
+        '<span class="dv fit">' + (A.days.length <= 10 ? fmt(d.views) : "") + '</span><div class="col" style="height:' + Math.max(1.5, (100 * d.views) / max) * 0.72 + '%"></div>' +
         '<div class="dl"><b>' + d.wd + "</b>" + dateShort(d.date) + "</div></div>").join("") + "</div></section>";
   }
   function geoBlock(A) {
@@ -1008,8 +1010,21 @@
       }
     });
   }
+  /* Великі числа завжди в один рядок: якщо не вміщаються (мільйони переглядів, вузький екран),
+     шрифт зменшується рівно настільки, щоб число стало в ширину свого блоку. */
+  function fitText(el) {
+    el.style.fontSize = "";
+    const avail = el.clientWidth;
+    if (!avail) return;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    for (let i = 0; i < 6 && el.scrollWidth > avail + 1; i++) {
+      size = Math.floor(size * (avail / el.scrollWidth) * 0.98);
+      el.style.fontSize = size + "px";
+    }
+  }
+  function fitAll() { document.querySelectorAll("#reportRoot .fit").forEach(fitText); }
   let rsz = 0;
-  window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (STATE && STATE.A && !$("report").hidden) drawTreemap(STATE.A); }, 120); });
+  window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (STATE && STATE.A && !$("report").hidden) { drawTreemap(STATE.A); fitAll(); } }, 120); });
   let printOpen = [];
   window.addEventListener("beforeprint", () => {
     printOpen = Array.from(document.querySelectorAll("details.theme:not([open])"));

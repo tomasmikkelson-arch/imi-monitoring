@@ -429,6 +429,8 @@ footer.foot p { margin: 0 0 8px; max-width: 100ch; }
   body { background: #fff; font-size: 12.5px; }
   .wrap { width: auto; }
   .topnav, .rep-actions, .notice, .filters, .more, .control > summary .btn, .rep-head .back, .tip, .modal, .veil, .toast, #home { display: none !important; }
+  .reach .big { font-size: 64px !important; }
+  .tov-num b, .rstat b { font-size: 30px !important; }
   .pdf-page-start { break-before: page; page-break-before: always; margin-top: 0 !important; }
   .control { display: none !important; }
   .no-print, .pextra, .tmap, .tmap-note, .screen-only { display: none !important; }
@@ -477,6 +479,10 @@ footer.foot p { margin: 0 0 8px; max-width: 100ch; }
 .veil canvas { position: absolute; left: -8vw; top: -4vh; width: 116vw; height: 112vh; display: block; }
 .veil-label { position: absolute; left: 50%; top: 41%; transform: translate(-50%, -100%); z-index: 2; color: #1c1c1c; font: 600 18px/1.3 "Avenir Next", "Segoe UI", sans-serif; letter-spacing: 0; text-align: center; width: min(88vw, 520px); }
 @media print { .veil { display: none !important; } }
+
+/* числа, що підганяються під ширину (див. fitText в app.js) */
+.fit { white-space: nowrap; display: block; overflow: hidden; }
+.day .dv.fit { overflow: visible; }
 
 /* довгі URL і слова не розпирають сітки */
 .block { overflow-wrap: break-word; }
