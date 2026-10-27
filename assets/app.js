@@ -1035,16 +1035,24 @@
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return new TextDecoder().decode(bytes);
   }
-  function ghError(status) {
-    if (status === 401) return "GitHub не прийняв ключ: він неправильний або прострочений. Створіть новий.";
-    if (status === 403 || status === 404) return "Ключ не має права запису в " + CFG.owner + "/" + CFG.repo + ". Перевірте: доступ до цього репозиторію і Contents: Read and write.";
-    if (status === 409 || status === 422) return "Архів щойно змінився з іншого пристрою. Спробуйте зберегти ще раз.";
-    return "GitHub відповів помилкою " + status + ". Спробуйте ще раз за хвилину.";
+  /* Пояснення відмови GitHub звичайною мовою + оригінальне повідомлення GitHub для діагностики. */
+  async function ghFail(r, step) {
+    let msg = "";
+    try { msg = (await r.json()).message || ""; } catch (e) {}
+    const st = r.status;
+    let text;
+    if (st === 401) text = "GitHub не прийняв ключ: він неправильний, відкликаний або прострочений. Створіть новий ключ і відкрийте «Доступ до збереження».";
+    else if (st === 403 && /not accessible by personal access token|permission/i.test(msg)) text = "Ключ бачить репозиторій, але не має права запису: у налаштуваннях ключа Contents стоїть «Read-only». Змініть на «Read and write».";
+    else if (st === 404 || st === 403) text = step === "write" ? "Ключ не має доступу до репозиторію " + CFG.owner + "/" + CFG.repo + ": його не обрано в Repository access або ключ створено в іншому акаунті GitHub." : "Ключ не має доступу до репозиторію " + CFG.owner + "/" + CFG.repo + ".";
+    else if (st === 409 || st === 422) text = "Архів щойно змінився з іншого пристрою. Спробуйте зберегти ще раз.";
+    else text = "GitHub відповів помилкою " + st + ". Спробуйте ще раз за хвилину.";
+    if (msg && st !== 409 && st !== 422) text += " (GitHub: " + st + " " + msg + ")";
+    return Object.assign(new Error(text), { status: st });
   }
   async function ghGet(path, token) {
     const r = await fetch(API + path + "?ref=" + CFG.branch + "&t=" + Date.now(), { headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json" }, cache: "no-store" });
     if (r.status === 404) return null;
-    if (!r.ok) throw Object.assign(new Error(ghError(r.status)), { status: r.status });
+    if (!r.ok) throw await ghFail(r, "read");
     const j = await r.json();
     let text = j.content ? b64DecodeUtf8(j.content) : "";
     if (!text && j.download_url) { const rr = await fetch(j.download_url, { cache: "no-store" }); text = await rr.text(); }
@@ -1054,7 +1062,7 @@
     const body = { message, content: b64EncodeUtf8(text), branch: CFG.branch };
     if (sha) body.sha = sha;
     const r = await fetch(API + path, { method: "PUT", headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (!r.ok) throw Object.assign(new Error(ghError(r.status)), { status: r.status });
+    if (!r.ok) throw await ghFail(r, "write");
     return r.json();
   }
   /* Запис звіту в reports/ і оновлення reports/index.json.
