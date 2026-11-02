@@ -195,8 +195,8 @@
     setTimeout(() => { veil.hidden = true; gridOn = false; if (gridFrame) cancelAnimationFrame(gridFrame); }, 480);
   }
   async function hold(ms) { await new Promise(r => setTimeout(r, ms)); }
-  showVeil("Завантаження");
-  setTimeout(hideVeil, 5600);
+  /* Екран завантаження показується лише під час розрахунку Excel-файлу (handleFile).
+     При відкритті сайту й готових звітів його немає. */
 
   /* ───────────── стан ───────────── */
   let STATE = null; // { report, saved, url }
