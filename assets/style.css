@@ -489,3 +489,6 @@ footer.foot p { margin: 0 0 8px; max-width: 100ch; }
 .risk li, .flist li, .mlist li > div, .expert li, .changes li, .notice p, td { min-width: 0; overflow-wrap: anywhere; }
 .tile .tn { overflow-wrap: normal; word-break: normal; }
 .tile .tv { white-space: nowrap; }
+
+/* Поки звіт за посиланням завантажується, головна прихована (клас ставить скрипт у <head>) */
+.route-report #home { display: none !important; }

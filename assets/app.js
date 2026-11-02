@@ -304,6 +304,7 @@
 
   /* ═════════════ МАРШРУТИ ═════════════ */
   function showHome() {
+    document.documentElement.classList.remove("route-report");
     $("home").hidden = false; $("report").hidden = true;
     $("topnav").innerHTML = getToken() ? '<span class="chip-ok">' + icon("check") + "Збереження в архів увімкнено</span>" : "";
     document.title = "Медіамоніторинг";
@@ -319,6 +320,7 @@
     const idxP = loadIndex().then(st => { renderArchive(st); return st; });
     if (!id) { showHome(); return; }
     if (!/^[0-9A-Za-z_\-]+$/.test(id)) { showHome(); return; }
+    document.documentElement.classList.add("route-report");
     if (STATE && STATE.report.id === id) { openReport(); return; }
     let rep = null;
     for (const u of ["reports/" + id + ".json", RAW + "reports/" + id + ".json"]) {
