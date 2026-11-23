@@ -1,6 +1,18 @@
 {
  "reports": [
   {
+   "id": "2026-11-16_2026-11-22",
+   "from": "2026-11-16",
+   "to": "2026-11-22",
+   "fileName": "institut-masovoyi-informaciyi_articles_2026-11-23_08-58-44.xlsx",
+   "fileHash": "b02e6703f32252e1249e69bbd201fdc2ae9c07458d5bc92a4c7945d5d0002b68",
+   "savedAt": "2026-11-23T09:02:06.410Z",
+   "v": "2.0.0",
+   "materials": 279,
+   "viewsAll": 453798,
+   "viewsEditorial": 396253
+  },
+  {
    "id": "2026-11-09_2026-11-15",
    "from": "2026-11-09",
    "to": "2026-11-15",
